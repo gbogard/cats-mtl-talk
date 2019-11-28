@@ -510,3 +510,7 @@ object Main extends App {
 # Thank you!
 
 ## Keep calm and curry on 🎸
+
+This talk is on Github :
+
+### gbogard/cats-mtl-talk
