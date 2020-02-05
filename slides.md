@@ -3,16 +3,15 @@ marp: true
 size: 4K
 ---
 <!-- theme: gaia -->
-<!-- paginate: true -->
 <!-- _class: lead invert -->
-<!-- _header: @bogardguillaume  -->
+<!-- _header: @bogardguillaume - guillaumebogard.dev -->
 
 ![](./img/cats-logo.png)
 # IO monad & Error management
 ## From exceptions to Cats MTL
 ---
 
-# Bonjour!
+# Bonjour !
 
 My name is **Guillaume Bogard**. I'm a Scala Developer @Linkvalue.
 
@@ -22,7 +21,7 @@ I love functional programming, roller-coasters, and Age of Empires.
 
 Also mechanical keyboards ⌨
 
-You can follow me on Twitter @bogardguillaume.
+You can follow me on Twitter @bogardguillaume and on [guillaumebogard.dev]()
 
 ---
 
@@ -31,21 +30,37 @@ You can follow me on Twitter @bogardguillaume.
 
 ---
 
+# The *M Word*, a quick recap
+
+**A Monad `M[T]` is an immutable data structure used to describe the computation of one or more values of type `A`**
+
+- Values of type `T` can be turned into *monadic values* `M[T]` 
+- Monads can chain subsequent computations (i.e solve big problems out of smaller problems)
+- They describe some *functional effect*: `Option` describes optionality, `Either` describes failure, `List` describes
+non-determinism
+
+
+---
+
 # Why do we need IO anyway ?
 
+<!-- 
+
+Referentially transparent values mean we can define then in any order, pass them
+around, compose them, without any fear of unwanted execution
+
+Encode as much as possible in types.
+Make side effects obvious.
+Signatures as contracts
+ -->
 
 - `IO`s are **programs as values**.
    ```scala
    def getUser(id: String): IO[User]
    ```
 - They turn impure programs into referentially transparent values.
-<!-- Through lazy eval. -->
 - They reveal the presence of sneaky side effects 🐍 
-<!-- 
-Encode as much as possible in types.
-Make side effects obvious.
-Signatures as contracts
- -->
+
 - They **compose** :
   ```scala
   def getFavoritePet(user: User): IO[Pet]
@@ -273,7 +288,7 @@ def authenticate(userName: String, password: String): IO[Either[AuthenticationEr
 
 ---
 <!-- _class: lead invert -->
-![bg](img/transformers.jpg)
+![bg opacity:.5](img/transformers.jpg)
 
 # Monad Transformers
 
@@ -424,7 +439,7 @@ We'll need to provide a concrete implementation of `F` to run the program.
 <!--
 Few things to note here : 
   - The F[_]: Applicative is context bound
-  - Functor raise wants you to provide the type of your errors, meaning you can rasie any type
+  - Functor raise wants you to provide the type of your errors, meaning you can raise any type
   of errors you want, hence our ADT
   - You can add as many effects as you want to the F monad, just add the implicit parameter for the mtl type class you want to implement
  -->
@@ -505,7 +520,10 @@ object Main extends App {
 
 ---
 
-<!-- _class: lead invert -->
+<!-- 
+_class: lead invert 
+_header: @bogardguillaume - [guillaumebogard.dev]()
+-->
 
 # Thank you!
 
