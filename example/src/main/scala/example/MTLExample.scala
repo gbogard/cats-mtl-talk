@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.implicits._
 import cats.mtl.implicits._
 import cats.mtl.{ApplicativeHandle, FunctorRaise}
-import cats.{Applicative, ApplicativeError, MonadError}
+import cats.{Applicative, ApplicativeError}
 import example.AuthenticationError.WrongPassword
 
 object MTLExample {
@@ -37,7 +37,7 @@ object MTLExample {
 
 
   def authenticate[F[_]: Applicative](userName: String, password: String)
-    (implicit F: FunctorRaise[F, AuthenticationError], AE: MonadError[F, Throwable]): F[User] =
+    (implicit F: FunctorRaise[F, AuthenticationError], AE: ApplicativeError[F, Throwable]): F[User] =
     for {
       user <- findUserByName[F](userName)
       _ <- checkPassword[F](user, password)

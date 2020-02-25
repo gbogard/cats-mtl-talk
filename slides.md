@@ -1,60 +1,59 @@
----
-marp: true
-size: 4K
----
-<!-- theme: gaia -->
-<!-- _class: lead invert -->
-<!-- _header: @bogardguillaume - guillaumebogard.dev -->
+autoscale: true
+slide-transition: true
 
-![](./img/cats-logo.png)
-# IO monad & Error management
-## From exceptions to Cats MTL
+![inline](./img/cats-logo.png)
+# [fit] IO Monad & Error management
+## [fit] From Exceptions to Cats MTL
+## @bogardguillaume - guillaumebogard.dev
+
 ---
 
-# Bonjour !
+# Bonjour ! 👋
 
 My name is **Guillaume Bogard**. I'm a Scala Developer @Linkvalue.
 
 I love functional programming, roller-coasters, and Age of Empires.
 
-...
-
-Also mechanical keyboards ⌨
+<br />
 
 You can follow me on Twitter @bogardguillaume and on [guillaumebogard.dev]()
 
 ---
 
-<!-- _class: lead -->
-# Let's talk about IO
+# [fit] Let's talk about IO
 
 ---
 
+^ 3 : Monads are used to enrich a computation with an additional effect. You need M[A] when A alone is not enough.
+The effects are reflected in the type signature of the value which means they're known by the compiler and must be
+explicitly dealt with
+
+[.build-lists: true]
+
 # The *M Word*, a quick recap
 
-**A Monad `M[T]` is an immutable data structure used to describe the computation of one or more values of type `A`**
+**A Monad `M[A]` is an immutable data structure used to describe the computation of one or more values of type `A`**
 
-- Values of type `T` can be turned into *monadic values* `M[T]` 
+- Values of type `A` can be turned into *monadic values* `M[A]` 
 - Monads can chain subsequent computations (i.e solve big problems out of smaller problems)
 - They describe some *functional effect*: `Option` describes optionality, `Either` describes failure, `List` describes
 non-determinism
 
-
 ---
+
+[.build-lists: true]
 
 # Why do we need IO anyway ?
 
-<!-- 
-
-Referentially transparent values mean we can define then in any order, pass them
+^ Referentially transparent values mean we can define then in any order, pass them
 around, compose them, without any fear of unwanted execution
 
-Encode as much as possible in types.
+^ Encode as much as possible in types.
 Make side effects obvious.
 Signatures as contracts
- -->
 
 - `IO`s are **programs as values**.
+
    ```scala
    def getUser(id: String): IO[User]
    ```
@@ -62,40 +61,17 @@ Signatures as contracts
 - They reveal the presence of sneaky side effects 🐍 
 
 - They **compose** :
+
   ```scala
   def getFavoritePet(user: User): IO[Pet]
   val marksFavoritePet: IO[Pet] = getUser("Mark") flatMap getFavoritePet
   ```
-<!-- 
-Several implementations (Cats effect, Monix tasks, ZIO). Let's talk about cats effect
--->
----
-
-## Use case : a functional web service
-
-*Routes* are merely **functions from `Request` to `IO[Response]`**. 
-
-Let's say we want to retrieve a pet by its owner id, I can compose my IOs just like any monad.
-
-```scala
-def getPetByOwnerId(request: Request): IO[Pet] = {
-  user <- getUser(request.id)
-
-}
-```
 
 ---
 
 # When things go wrong
 
 Cats effect allows to raise `Throwable`s inside the `IO` context, propagate them across all the `IO` chain, and recover them later.
-
-<!-- 
-Thanks to the MonadError type class 
-
-Thrown exceptions using regular `throw` don't escape the IO context.
--->
-
 
 ```scala
 val failedIO: IO[Int] = IO.raiseError(new Exception("Boom"))
@@ -110,7 +86,11 @@ failedIO.recoverWith({
 
 ---
 
-## Use case : Modeling an authentication flow
+### Use case : Modeling an authentication flow
+
+^ I could create a program by composing several specialized IOs together
+
+[.build-lists: true]
 
 I want to authenticate a user using a name and a password. I need to return the user's information.
 
@@ -119,9 +99,12 @@ I want to authenticate a user using a name and a password. I need to return the 
 - I need to check that the user subscription is valid (maybe through a billing service)
 - And the user must not be banned from our service
 
-I could do all that by composing several `IO` together.
-
 ---
+
+[.code-highlight: 1-5]
+[.code-highlight: 6-10]
+[.code-highlight: 12-18]
+[.code-highlight: all]
 
 ```scala
 case object WrongUserName extends RuntimeException("No user with that name")
@@ -146,6 +129,10 @@ def authenticate(userName: String, password: String): IO[User] =
 
 ---
 
+[.code-highlight: all]
+[.code-highlight: 5-13]
+[.code-highlight: all]
+
 ```scala
 authenticate("john.doe", "foo.bar")
   .flatMap(user => IO {
@@ -164,17 +151,25 @@ authenticate("john.doe", "foo.bar")
 
 ---
 
+
+[.build-lists: true]
+
+^ Once the IO is ran, raised exceptions behave exactly like standard exceptions, meaning it will crash the jvm if not caught
+
 # The issues with Exception
 
 - ❌ Exceptions are invisible
-- ❌ They must be explicitly recovered
-- ❌ They must be explicitly documented <!-- They are very easy to forget -->
+- ❌ One can forget to recover them
+- ❌ They must be explicitly documented 
 - ❌ They can be ambiguous : 
-  - `IO`s only raise and recover `Throwable`s. Type-wise they don't distinguish between `java.util.concurrent.TimeoutException` & `AuthenticationException`.
+  - `IO`s only raise and recover `Throwable`s. They don't distinguish between `java.util.concurrent.TimeoutException` & `AuthenticationException` at compile-time.
 - ❌ You get no proper exhaustivity check
-  <!-- Once the IO is ran, raised exceptions behave exactly like standard exceptions, meaning ...>
 
 ---
+
+^ Exceptions don't appear in the signature, yet can have dramatic impact on the program.
+Need to check for @throws in the scaladoc part, or even wose : read the implementation 
+Should not have to do that since functions signatures are contracts
 
 # This is a lie
 
@@ -188,17 +183,15 @@ Unhandled errors will be propagated across the whole application once the IO is 
 
 Requires more reading and more testing.
 
-<!-- 
-Exceptions don't appear in the signature, yet can have dramatic impact on the program.
-Need to check for @throws in the scaladoc part, or even wose : read the implementation 
-Should not have to do that since functions signatures are contracts
--->
+---
+
+# [fit] Make exceptions
+# [fit] exceptional again 
+## [fit] ⚠️ Opinionated statements ahead
 
 ---
-<!-- _class: lead invert -->
-# Make exceptions exceptional again 
-#### ⚠️ Opinionated statements incoming
----
+
+[.build-lists: true]
 
 ## Domain errors are not exceptions
 
@@ -208,45 +201,68 @@ e.g.: The user hasn't paid their subscription
 - Exceptions should be reserved for unexpected, purely technical failures.
 e.g.: The database server is unreachable.
 
-Exceptions should be propagated to the upper levels of the app and actively monitored.
-
-<!-- Because when we fail, we want to fail fast! -->
 
 ---
-# Modeling errors using an ADT
+
+^ One could also say : don't expose domain errors to your developers : no unnecessary logs etc.
+
+## When a user is breaking a business rule, don't fail
+
+## When you need to fail, fail *fast*
+
+Exceptions should be propagated to the upper levels of the app and actively monitored.
+
+## Don't expose technical errors to your users
+
+---
+
+[.code-highlight: 1-6]
+[.code-highlight: 8-12]
+
+## Modeling errors using an ADT
 
 ```scala
 sealed trait AuthenticationError
 case object WrongUserName extends AuthenticationError
 case object WrongPassword extends AuthenticationError
-case class ExpiredSubscription(expirationDate: Date) extends AuthenticationError
+case class ExpiredSubscription(expirationDate: Date) 
+  extends AuthenticationError
 case object BannedUser extends AuthenticationError
+
+// Then our method could look like this :
+def authenticate(
+  userName: String, 
+  password: String
+): IO[Either[AuthenticationError, User]]
 ```
 
-## Using it with `Either`
-
-```scala
-def authenticate(userName: String, password: String): IO[Either[AuthenticationError, User]]
-```
 ---
 
-# What we've achieved
+[.build-lists: true]
+
+## What we've achieved
 
 ```scala
-def authenticate(userName: String, password: String): IO[Either[AuthenticationError, User]]
+def authenticate(
+  userName: String, 
+  password: String
+): IO[Either[AuthenticationError, User]]
 ```
 
 - ✅ Side effects are obvious
 - ✅ Domain errors are visible and cannot be forgotten
 - ✅ Technical errors can still be raised and recovered
-- ✅ No need to check the documentation for unhandled edge cases<!-- They are very easy to forget -->
+- ✅ No need to check the documentation for unhandled edge cases
 - ✅ We have clearly distinct error families
-
-**But** we've lost something very important along the way
 
 ---
 
-## This does not compose anymore !
+![](./img/superman.gif)
+## But we've lost something very important along the way
+
+---
+
+## We can't compose anymore!
 
 ❌ This does not compile
 
@@ -264,13 +280,16 @@ def authenticate(userName: String, password: String): IO[Either[AuthenticationEr
     _ <- checkUserStatus(user)
   } yield user
 ```
-<!-- 
-Of course, checkPassword and checkSubscription and checkStatus could be executed in parallel
- -->
 
 ---
 
-We can't compose many `IO[Either[A, B]]` together. We must handle the errors explicitly.
+## We can't compose many `IO[Either[A, B]]` together. 
+
+### We must handle the errors explicitly.
+
+---
+
+## We need something like this instead
 
 ```scala
 def authenticate(userName: String, password: String): IO[Either[AuthenticationError, User]] =
@@ -286,27 +305,34 @@ def authenticate(userName: String, password: String): IO[Either[AuthenticationEr
   })
 ```
 
+Error handling shouldn't be this painful.
+
 ---
-<!-- _class: lead invert -->
-![bg opacity:.5](img/transformers.jpg)
+
+![](img/transformers.gif)
 
 # Monad Transformers
 
 ---
-<!-- _class: lead invert -->
 
-Monad transformers (`OptionT`, `IorT`, `EitherT`, `ReaderT` and `WriterT`) add new behavior, also referred to as as *effect*, to an underlying monad while preserving compositionality.
+^ In cats, monad transformers include EitherT, OptionT, EitherT, ReaderT (an alias for Kleisli)
+
+## Monad transformers add new behavior to an underlying monad while preserving compositionality.
 
 E.g : `OptionT[F, A]` creates a new monad which adds the effect of absence to a monad F.
+
+They are type constructors that take a monad as an argument and return a monad.
 
 ---
 
 ## From `F[Either[A, B]` to `EitherT[F, A, B]`
 
 
-> `EitherT[F, L, R]` is a light wrapper around `F[Either[A, B]]` that makes it easy to compose `Either`s and `F`s together.
+`EitherT[F, L, R]` is a light wrapper around `F[Either[A, B]]` that makes it easy to compose `Either`s and `F`s together.
 
-- It has bidirectional transformation from/to `F[Either[A, B]]` via the `apply` and `value` methods respectively.
+<br>
+
+It has bidirectional transformation from/to `F[Either[A, B]]` via the `apply` and `value` methods respectively.
 
 ```scala
 val a: IO[Either[AuthenticationError, User]] = ???
@@ -315,17 +341,15 @@ val b: EitherT[IO, AuthenticationError, User] = EitherT(a)
 
 ---
 
-`EitherT` forms a compound monad out of two out of some `F` type, and the `Either` monad.
-
-When `F` is a monad, such as `IO`, `EitherT` will also form a monad, making it easy to compose the compound monad using `map` and `flatMap`.
-
-`OptionT` does the same for `Option`.
-
-`IorT` does the same for `Ior` (an inclusive-or relationship between two data types)
+## Include schema
 
 ---
 
 ## Rewriting our authentication method
+
+[.code-highlight: 1-4]
+[.code-highlight: 6-12]
+[.code-highlight: all]
 
 ```scala
 def findUserByName(username: String): EitherT[IO, AuthenticationError, User] = ???
@@ -342,13 +366,15 @@ def authenticate(userName: String, password: String): EitherT[IO, Authentication
   } yield user
 ```
 
-`EitherT` will short-circuit computation on the first encountered error, a pattern sometimes called *Railway-oriented programming* 🚂
+`EitherT` will short-circuit computation on the first encountered error, a pattern sometimes called *Railway-oriented programming* 🚂 
 
 ---
 
+[.build-lists: true]
+
 ## Look how far we've come!
 
-We've met all our gaols :
+We've met all of our gaols :
 
 - ✅ Side effects visible
 - ✅ `IO`s and errors can be composed, railway style 
@@ -356,55 +382,55 @@ We've met all our gaols :
   - Exceptions thrown inside the IO for purely technical failures
   - The *Left* of the `Either` for business-related errors
 
-This way we can **fail fast** on technical failures and easily provide good feedback to the user for business edge cases.
+This way we can *fail fast* on technical failures and easily provide good feedback to the user for business edge cases.
 
 ---
-<!-- _class: lead invert -->
 
+![](./img/cat-dj.gif)
 # We've won, let's have a drink! 🍻
+
 ---
 
-<!-- _class: lead  -->
+# Wait, but what about Cats MTL then?
 
-# But, wait, what about Cats MTL then ?
 ---
 
 # Challenges yet to address
 
 - What about nested transformers ? What if I want to model mutable state **and** potential absence for example ?
 - What about type inference and expressivity ?
-  - Nesting monad transformers requires many type parameters and type lambdas. The more you nest, the worst inference gets!
+  - Monad transformers requires many type many type annotations to work properly. The more you nest, the worst inference gets!
 
 ---
-<!-- _class: lead  -->
+
 ## Can you guess what this code does ?
 
 ```scala
-  // Retrieves document from a super secure data store
-  def getDocument: IO[SecretDocument] = ???
+// Retrieves document from a super secure data store
+def getDocument: IO[SecretDocument] = ???
 
-  type Count = Int
+type Count = Int
 val readSecretDocument: User => EitherT[IO, String, SecretDocument] = {
-    val state: StateT[ReaderT[IO, User, *], Count, Either[String, SecretDocument]] =
-      StateT[ReaderT[IO, User, *], Int, Either[String, SecretDocument]](currentAttemptsCount =>
-        ReaderT[IO, User, (Count, Either[String, SecretDocument])](user =>
-          if (currentAttemptsCount >= 3) IO.pure((currentAttemptsCount, Left("Max attemps exceeded")))
-          else if (user.isAdmin) getDocument.map(doc => (currentAttemptsCount, Right(doc)))
-          else IO.pure((currentAttemptsCount + 1, Left("Access denied")))
-        )
+  val state: StateT[ReaderT[IO, User, *], Count, Either[String, SecretDocument]] =
+    StateT[ReaderT[IO, User, *], Int, Either[String, SecretDocument]](currentAttemptsCount =>
+      ReaderT[IO, User, (Count, Either[String, SecretDocument])](user =>
+        if (currentAttemptsCount >= 3) IO.pure((currentAttemptsCount, Left("Max attemps exceeded")))
+        else if (user.isAdmin) getDocument.map(doc => (currentAttemptsCount, Right(doc)))
+        else IO.pure((currentAttemptsCount + 1, Left("Access denied")))
       )
+    )
 
-    state.run(0).map(_._2).mapF(EitherT(_)).run
-  }
+  state.run(0).map(_._2).mapF(EitherT(_)).run
+}
 ```
 
-**Me neither.**
+---
+
+### Me neither
 
 ---
-<!-- _class: lead  -->
 
-
-When we need to combine effects (e.g short-circuiting AND mutable state), monad transformers only get us so far.
+When we need to combine effects (e.g short-circuiting AND mutable state), monad transformers alone only get us so far.
 
 Scala's inference system can't keep up with nested monad transformers stack, requiring a ridiculous amount of boilerplate to get simple things done.
 
@@ -412,16 +438,25 @@ Scala's inference system can't keep up with nested monad transformers stack, req
 
 ## The idea of Cats MTL
 
-Monad transformers encode some *effect*, e.g. :
+Remember that Monad transformers add some *effect* to a monad, e.g. :
 
 - `EitherT` encodes the effect of short-circuiting on error
 - `ReaderT` (i.e. `Kleisli`) encode the effect of accessing a read-only value from a context, and producing a value from it
 
-<!-- Monad transformers can be used together to add many effects to the same monad -->
+---
 
-Cats MTL encodes these effects, among others, in **type classes**. It gives the ability to combine effects together, without the drawback of bad inference.
+### Cats MTL encodes the effect of the most common Monad Trasnformers in **type classes**. 
+
+#### It gives the ability to combine effects together, without the drawback of bad inference.
 
 ---
+
+^ Few things to note here : 
+  - The F[_]: Applicative is a context bound
+  - It isn't necessary
+  - FunctorRaise wants you to provide the type of your errors, meaning you can rasie any type
+  of errors you want, hence our ADT
+  - You can add as many effects as you want to the F monad, just add the implicit parameter for the mtl type class you want to implement
 
 ### How would one encode the effect of raising errors ?
 
@@ -435,14 +470,6 @@ def readSecretDocument[F[_] : Applicative](user: User)
 We've turned our `EitherT` into a generic `F[_]` Applicative. All we know about this `F[_]` is that there is an instance of `FunctorRaise` defined for it.
 
 We'll need to provide a concrete implementation of `F` to run the program.
-
-<!--
-Few things to note here : 
-  - The F[_]: Applicative is context bound
-  - Functor raise wants you to provide the type of your errors, meaning you can raise any type
-  of errors you want, hence our ADT
-  - You can add as many effects as you want to the F monad, just add the implicit parameter for the mtl type class you want to implement
- -->
 
 ---
 
@@ -462,7 +489,7 @@ def getDocumentContent[F[_] : Applicative](user: User)
 
 ## We still get a dedicate channel for technical failures
 
-By adding a context bound on `MonadError`, we can raise `Exception`s in our IOs, and segregate technical failures from domain errors 🙌
+By adding a context bound on `ApplicativeError`, we can raise `Exception`s in our IOs, and segregate technical failures from domain errors 🙌
 
 ```scala
 def findUserByName[F[_]](name: String)
@@ -475,6 +502,10 @@ def findUserByName[F[_]](name: String)
 
 ## Implementing the `authenticate` method
 
+[.code-highlight: 1-6]
+[.code-highlight: 8-15]
+[.code-highlight: all]
+
 ```scala
 def checkPassword[F[_]](user: User, password: String)
   (implicit F: FunctorRaise[F, AuthenticationError]): F[Unit] =
@@ -484,7 +515,7 @@ def checkSubscription[F[_]](user: User): F[User] = ???
 def checkUserStatus[F[_]](user: User): F[User] = ???
 
 def authenticate[F[_]](userName: String, password: String)
-  (implicit F: FunctorRaise[F, AuthenticationError], AE: MonadError[F, Throwable]): F[User] =
+  (implicit F: FunctorRaise[F, AuthenticationError], AE: ApplicativeError[F, Throwable]): F[User] =
   for {
     user <- findUserByName[F](userName)
     _ <- checkPassword[F](user, password)
@@ -512,23 +543,17 @@ object Main extends App {
 
 - Shit happens, we need to handle it carefully
 - Don't let technical details mess up your domain
-  - Monad transformers let you add effects to existing monads, to create more badass monads
+  - Monad transformers let you add effects to existing monads, to create more *badass* monads
   - Cats MTL gives you this without the syntax headache
-- Challenge your approach, there are plenty of error management strategies out there! (e.g. ZIO)
-  Cats MTL is cool, but you might not need it!
-- Have fun
+- Challenge your approach, there are plenty of error management strategies out there!
+  Cats MTL is cool, but you might not need it
+- Have fun!
 
 ---
 
-<!-- 
-_class: lead invert 
-_header: @bogardguillaume - [guillaumebogard.dev]()
--->
-
+[.footer: @bogardguillaume - guillaumebogard.dev]
 # Thank you!
 
-## Keep calm and curry on 🎸
+## Keep calm and curry on 
 
-This talk is on Github :
-
-### gbogard/cats-mtl-talk
+#### This talk is on GitHub : gbogard/cats-mtl-talk
