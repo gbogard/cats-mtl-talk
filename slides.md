@@ -1,12 +1,18 @@
 autoscale: true
 slide-transition: true
 
+^ Thank you for being here, and thanks to the conference organizers for having me today. 
+This is a talk on managing errors in functional applications, based on my personal experience writing Scala apps
+for the last few years. I hope you enjoy it.
+
 ![inline](./img/cats-logo.png)
 # [fit] IO Monad & Error management
 ## [fit] From Exceptions to Cats MTL
 ## @bogardguillaume - guillaumebogard.dev
 
 ---
+
+^ Before we dig in, a few words about me: 
 
 # Bonjour ! 👋
 
@@ -20,11 +26,14 @@ You can follow me on Twitter @bogardguillaume and on [guillaumebogard.dev]()
 
 ---
 
-# [fit] Let's talk about IO
+# [fit] Let's talk about IO monads
 
 ---
 
-^ 3 : Monads are used to enrich a computation with an additional effect. You need M[A] when A alone is not enough.
+^ 1 : Monads have a type constructor from A to M[A]
+2 : All monads have a flatMap method that can chain computations. Composition is key part of what monads are. Model computation
+that depends on the result of a previous computation
+3 : The why : Monads are used to enrich a computation with an additional effect. You need M[A] when A alone is not enough.
 The effects are reflected in the type signature of the value which means they're known by the compiler and must be
 explicitly dealt with
 
@@ -86,11 +95,10 @@ failedIO.recoverWith({
 
 ---
 
-### Use case : Modeling an authentication flow
-
 ^ I could create a program by composing several specialized IOs together
-
 [.build-lists: true]
+
+### Use case : Modeling an authentication flow
 
 I want to authenticate a user using a name and a password. I need to return the user's information.
 
@@ -121,9 +129,9 @@ def checkUserStatus(user: User): IO[Unit] = ???
 def authenticate(userName: String, password: String): IO[User] =
   for {
     user <- findUserByName(userName)
-    _ <- checkPassword(user, password)
-    _ <- checkSubscription(user)
-    _ <- checkUserStatus(user)
+    _    <- checkPassword(user, password)
+    _    <- checkSubscription(user)
+    _    <- checkUserStatus(user)
   } yield user
 ```
 
@@ -275,17 +283,15 @@ def checkUserStatus(user: User): IO[Either[AuthenticationError, Unit]] = ???
 def authenticate(userName: String, password: String): IO[Either[AuthenticationError, User]] =
   for {
     user <- findUserByName(userName)
-    _ <- checkPassword(user, password)
-    _ <- checkSubscription(user)
-    _ <- checkUserStatus(user)
+    _    <- checkPassword(user, password)
+    _    <- checkSubscription(user)
+    _    <- checkUserStatus(user)
   } yield user
 ```
 
 ---
 
-## We can't compose many `IO[Either[A, B]]` together. 
-
-### We must handle the errors explicitly.
+## We can't compose many `IO[Either[A, B]]` together. 😔
 
 ---
 
@@ -341,7 +347,7 @@ val b: EitherT[IO, AuthenticationError, User] = EitherT(a)
 
 ---
 
-## Include schema
+![inline](./img/eithert.png)
 
 ---
 
@@ -360,13 +366,34 @@ def checkUserStatus(user: User): EitherT[IO, AuthenticationError, Unit] = ???
 def authenticate(userName: String, password: String): EitherT[IO, AuthenticationError, User] =
   for {
     user <- findUserByName(userName)
-    _ <- checkPassword(user, password)
-    _ <- checkSubscription(user)
-    _ <- checkUserStatus(user)
+    _    <- checkPassword(user, password)
+    _    <- checkSubscription(user)
+    _    <- checkUserStatus(user)
   } yield user
 ```
 
 `EitherT` will short-circuit computation on the first encountered error, a pattern sometimes called *Railway-oriented programming* 🚂 
+
+---
+
+^ Instead of exposing EitherT in the signatures, you can also choose to lift IO[Either[A, B]]
+when you actually need to perform the composition
+
+```scala
+def findUserByName(username: String): IO[Either[AuthenticationError, User]] = ???
+def checkPassword(user: User, password: String): IO[Either[AuthenticationError, Unit]] = ???
+def checkSubscription(user: User): IO[Either[AuthenticationError, Unit]] = ???
+def checkUserStatus(user: User): IO[Either[AuthenticationError, Unit]] = ???
+
+
+def authenticate(userName: String, password: String): EitherT[IO, AuthenticationError, User] =
+  for {
+    user <- EitherT(findUserByName(userName))
+    _    <- EitherT(checkPassword(user, password))
+    _    <- EitherT(checkSubscription(user))
+    _    <- EitherT(checkUserStatus(user))
+  } yield user
+```
 
 ---
 
