@@ -12,7 +12,7 @@ for the last few years. I hope you enjoy it.
 
 ---
 
-^ Before we dig in, a few words about me: 
+^ Before we dig in, I will introduce myself very quickly: 
 
 # Bonjour ! 👋
 
@@ -30,6 +30,8 @@ You can follow me on Twitter @bogardguillaume and on [guillaumebogard.dev]()
 
 ---
 
+[.build-lists: true]
+
 ^ 1 : Monads have a type constructor from A to M[A]
 2 : All monads have a flatMap method that can chain computations. Composition is key part of what monads are. Model computation
 that depends on the result of a previous computation
@@ -37,7 +39,6 @@ that depends on the result of a previous computation
 The effects are reflected in the type signature of the value which means they're known by the compiler and must be
 explicitly dealt with
 
-[.build-lists: true]
 
 # The *M Word*, a quick recap
 
@@ -45,8 +46,7 @@ explicitly dealt with
 
 - Values of type `A` can be turned into *monadic values* `M[A]` 
 - Monads can chain subsequent computations (i.e solve big problems out of smaller problems)
-- They describe some *functional effect*: `Option` describes optionality, `Either` describes failure, `List` describes
-non-determinism
+- They describe some *functional effect*: `Option` describes optionality, `Either` describes failure ...
 
 ---
 
@@ -95,8 +95,9 @@ failedIO.recoverWith({
 
 ---
 
-^ I could create a program by composing several specialized IOs together
 [.build-lists: true]
+
+^ I could create a program by composing several specialized IOs together
 
 ### Use case : Modeling an authentication flow
 
@@ -159,7 +160,6 @@ authenticate("john.doe", "foo.bar")
 
 ---
 
-
 [.build-lists: true]
 
 ^ Once the IO is ran, raised exceptions behave exactly like standard exceptions, meaning it will crash the jvm if not caught
@@ -176,7 +176,7 @@ authenticate("john.doe", "foo.bar")
 ---
 
 ^ Exceptions don't appear in the signature, yet can have dramatic impact on the program.
-Need to check for @throws in the scaladoc part, or even wose : read the implementation 
+Need to check for @throws in the scaladoc part, or even worse : read the implementation 
 Should not have to do that since functions signatures are contracts
 
 # This is a lie
@@ -401,9 +401,9 @@ def authenticate(userName: String, password: String): EitherT[IO, Authentication
 
 ## Look how far we've come!
 
-We've met all of our gaols :
+We've met all of our goals :
 
-- ✅ Side effects visible
+- ✅ Side effects are visible
 - ✅ `IO`s and errors can be composed, railway style 
 - ✅ We still get the benefit of having two distinct error channels :
   - Exceptions thrown inside the IO for purely technical failures
@@ -418,6 +418,9 @@ This way we can *fail fast* on technical failures and easily provide good feedba
 
 ---
 
+^ we could stop there, since we have met all of our goals, 
+but there are a couple more challenges that Cats MTL can help us address
+
 # Wait, but what about Cats MTL then?
 
 ---
@@ -426,7 +429,7 @@ This way we can *fail fast* on technical failures and easily provide good feedba
 
 - What about nested transformers ? What if I want to model mutable state **and** potential absence for example ?
 - What about type inference and expressivity ?
-  - Monad transformers requires many type many type annotations to work properly. The more you nest, the worst inference gets!
+  - Monad transformers requires many type annotations to work properly. The more you nest, the worst inference gets!
 
 ---
 
@@ -451,9 +454,7 @@ val readSecretDocument: User => EitherT[IO, String, SecretDocument] = {
 }
 ```
 
----
-
-### Me neither
+Me neither.
 
 ---
 
@@ -478,10 +479,13 @@ Remember that Monad transformers add some *effect* to a monad, e.g. :
 
 ---
 
-^ Few things to note here : 
-  - The F[_]: Applicative is a context bound
+^ Let's say we want to write a function that reads a secret document, and fail if the user doesn't have the
+required permission read it. I could do it like this.
+Few things to note here : 
+  - I have abstracted over the monad type, that's why you see F instead of IO
+  - I have used a context-bound to tell the compile that this particular f is an applicative
   - It isn't necessary
-  - FunctorRaise wants you to provide the type of your errors, meaning you can rasie any type
+  - FunctorRaise wants you to provide the type of your errors, meaning you can raise any type
   of errors you want, hence our ADT
   - You can add as many effects as you want to the F monad, just add the implicit parameter for the mtl type class you want to implement
 
