@@ -2,7 +2,7 @@ package example
 
 import cats.data.EitherT
 import cats.effect.IO
-import cats.implicits._
+import example.AuthenticationError.{BannedUser, WrongPassword}
 
 object EitherTExample {
   def findUserByName(username: String): EitherT[IO, AuthenticationError, User] = ???
@@ -20,5 +20,4 @@ object EitherTExample {
       _ <- checkSubscription(user)
       _ <- checkUserStatus(user)
     } yield user
-
 }

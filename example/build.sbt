@@ -8,7 +8,11 @@ ThisBuild / organizationName := "example"
 lazy val root = (project in file("."))
   .settings(
     name := "example",
-    libraryDependencies ++= Seq("org.typelevel" %% "cats-mtl-core" % "0.7.0", "org.typelevel" %% "cats-effect" % "2.0.0"),
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-mtl-core" % "0.7.0",
+      "org.typelevel" %% "cats-effect" % "2.0.0",
+      "org.typelevel" %% "cats-core" % "2.0.0"
+    ),
     addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full)
   )
 
