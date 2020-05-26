@@ -2,6 +2,8 @@
 
 This is talk about functional error management using monad transformers I gave in a few meetups.
 
+- [Here's the video from the 2020 Typelevel Summit](https://www.youtube.com/watch?v=6WXgEGbf0iQ)
+
 In the `example` folder you will find a Scala project with all the examples from the talk.
 
 ### License
